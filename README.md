@@ -768,12 +768,271 @@ terraform import aws_instance.example i-0ab1cd23efgh45678
 
 ---
 
-# ✅ এখন তুমি Terraform এর Advanced Level এর বড় একটা অংশ শিখে ফেলেছো!
+# 📦 Terraform পর্ব ৪: Terraform দিয়ে AWS Infrastructure তৈরি
 
 ---
 
+# 🎯 প্রোজেক্টের টার্গেট (Objective):
 
+✅ AWS Provider সেটআপ  
+✅ VPC তৈরি  
+✅ Subnet তৈরি  
+✅ Security Group তৈরি  
+✅ Key Pair তৈরি  
+✅ EC2 Instance লঞ্চ  
+✅ Output এবং Variables ব্যবহার
 
+---
 
+# 🛠️ প্রজেক্ট স্ট্রাকচার:
 
+```bash
+terraform-aws-project/
+├── main.tf
+├── variables.tf
+├── outputs.tf
+├── terraform.tfvars
+├── provider.tf
+```
 
+---
+
+# ১. ☁️ AWS Provider Configuration (provider.tf)
+
+**`provider.tf`**
+```hcl
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+  }
+
+  required_version = ">= 1.7.0"
+}
+
+provider "aws" {
+  region = var.aws_region
+  profile = "default" # তোমার local AWS CLI profile যদি থাকে
+}
+```
+> 📚 **ব্যাখ্যা**: এখানে আমরা বলেছি AWS provider লাগবে এবং AWS CLI এর `default` profile ব্যবহার করবো।
+
+---
+
+# ২. 🌐 VPC তৈরি করা (main.tf)
+
+**`main.tf`**
+```hcl
+resource "aws_vpc" "main_vpc" {
+  cidr_block = var.vpc_cidr
+  tags = {
+    Name = "Main-VPC"
+  }
+}
+```
+> 📚 **ব্যাখ্যা**: এটা একটা নতুন VPC তৈরি করছে যার IP রেঞ্জ হচ্ছে `var.vpc_cidr` থেকে আসবে।
+
+---
+
+# ৩. 🏠 Subnet তৈরি করা (main.tf)
+
+```hcl
+resource "aws_subnet" "main_subnet" {
+  vpc_id                  = aws_vpc.main_vpc.id
+  cidr_block              = var.subnet_cidr
+  availability_zone       = var.availability_zone
+
+  tags = {
+    Name = "Main-Subnet"
+  }
+}
+```
+> 📚 **ব্যাখ্যা**: এই subnet টি আমাদের তৈরি করা VPC-র মধ্যে তৈরি হবে।
+
+---
+
+# ৪. 🔒 Security Group তৈরি করা (main.tf)
+
+```hcl
+resource "aws_security_group" "instance_sg" {
+  name        = "instance-sg"
+  description = "Allow SSH and HTTP"
+  vpc_id      = aws_vpc.main_vpc.id
+
+  ingress {
+    description = "Allow SSH"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "Allow HTTP"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    description = "Allow all outbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "Instance-SG"
+  }
+}
+```
+> 📚 **ব্যাখ্যা**: এখানে আমরা **SSH (22 port)** এবং **HTTP (80 port)** access ALLOW করেছি। সব Outbound traffic ALLOW করেছি।
+
+---
+
+# ৫. 🔑 Key Pair তৈরি করা (main.tf)
+
+```hcl
+resource "aws_key_pair" "deployer_key" {
+  key_name   = "deployer-key"
+  public_key = file(var.public_key_path)
+}
+```
+> 📚 **ব্যাখ্যা**: এখানে তোমার Public Key ফাইল থেকে key pair তৈরি হবে। (eg: `~/.ssh/id_rsa.pub`)
+
+---
+
+# ৬. 🖥️ EC2 Instance Launch করা (main.tf)
+
+```hcl
+resource "aws_instance" "web_instance" {
+  ami                         = var.ami_id
+  instance_type               = var.instance_type
+  subnet_id                   = aws_subnet.main_subnet.id
+  vpc_security_group_ids      = [aws_security_group.instance_sg.id]
+  key_name                    = aws_key_pair.deployer_key.key_name
+  associate_public_ip_address = true
+
+  tags = {
+    Name = "Web-Instance"
+  }
+}
+```
+> 📚 **ব্যাখ্যা**: আমরা আমাদের তৈরি করা VPC/Subnet/Security Group/Key Pair সব ব্যবহার করে একটি EC2 তৈরি করছি।
+
+---
+
+# ৭. 📝 Variables ডিফাইন করা (variables.tf)
+
+**`variables.tf`**
+```hcl
+variable "aws_region" {
+  type = string
+}
+
+variable "vpc_cidr" {
+  type = string
+}
+
+variable "subnet_cidr" {
+  type = string
+}
+
+variable "availability_zone" {
+  type = string
+}
+
+variable "ami_id" {
+  type = string
+}
+
+variable "instance_type" {
+  type = string
+}
+
+variable "public_key_path" {
+  type = string
+}
+```
+
+---
+
+# ৮. 📋 terraform.tfvars
+
+**`terraform.tfvars`**
+```hcl
+aws_region        = "us-east-1"
+vpc_cidr          = "10.0.0.0/16"
+subnet_cidr       = "10.0.1.0/24"
+availability_zone = "us-east-1a"
+ami_id            = "ami-0c55b159cbfafe1f0" # Amazon Linux 2 AMI
+instance_type     = "t2.micro"
+public_key_path   = "~/.ssh/id_rsa.pub"
+```
+> 📚 **ব্যাখ্যা**: এখানে আমরা সব variables এর ভ্যালু এক জায়গায় দিয়েছি।
+
+---
+
+# ৯. 🎯 Outputs তৈরি করা (outputs.tf)
+
+**`outputs.tf`**
+```hcl
+output "instance_public_ip" {
+  description = "Public IP of the web server"
+  value       = aws_instance.web_instance.public_ip
+}
+
+output "instance_id" {
+  description = "ID of the EC2 instance"
+  value       = aws_instance.web_instance.id
+}
+```
+> 📚 **ব্যাখ্যা**: Terraform Apply করার পর তোমার EC2 instance এর IP আর ID স্ক্রিনে দেখাবে।
+
+---
+
+# 🚀 ফুল Workflow (ধাপ-ধাপ কমান্ড)
+
+```bash
+# 1. ডিরেক্টরিতে যান
+cd terraform-aws-project/
+
+# 2. Provider প্লাগিন এবং dependency initialize করুন
+terraform init
+
+# 3. ইনফ্রাস্ট্রাকচার কি তৈরি হবে তার প্ল্যান দেখুন
+terraform plan
+
+# 4. ইনফ্রাস্ট্রাকচার বাস্তবায়ন করুন
+terraform apply
+
+# 5. চাইলে পরে সব কিছু ডিলিট করতে পারবেন
+terraform destroy
+```
+
+---
+
+# 🔥 Tips:
+
+| Command | Description |
+|:--------|:------------|
+| `terraform init` | Terraform প্লাগিন/ডিপেন্ডেন্সি ইনস্টল করে |
+| `terraform plan` | Apply করলে কি হবে তা দেখায় |
+| `terraform apply` | বাস্তবে ইনফ্রা তৈরি করে |
+| `terraform destroy` | তৈরি করা সব কিছু মুছে ফেলে |
+
+---
+
+# 🧠 এখন তুমি যা শিখলে:
+
+✅ AWS provider কনফিগারেশন  
+✅ VPC, Subnet, Security Group, Key Pair তৈরি  
+✅ EC2 instance launch  
+✅ Variables এবং Outputs ব্যবহার  
+✅ Terraform Workflow প্র্যাকটিস
+
+---
