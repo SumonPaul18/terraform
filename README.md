@@ -768,7 +768,7 @@ terraform import aws_instance.example i-0ab1cd23efgh45678
 
 ---
 
-# 📦 Terraform পর্ব ৪: Terraform দিয়ে AWS Infrastructure তৈরি
+## 📦 Terraform পর্ব ৪: Terraform দিয়ে AWS Infrastructure তৈরি
 
 ---
 
@@ -1034,5 +1034,191 @@ terraform destroy
 ✅ EC2 instance launch  
 ✅ Variables এবং Outputs ব্যবহার  
 ✅ Terraform Workflow প্র্যাকটিস
+
+---
+
+# 📦 Terraform পর্ব ৫: মডিউল, কন্ডিশন, লুপ
+
+---
+
+# ১. 📚 Terraform Modules: কী ও কেন?
+
+### 🔵 Terraform Module কী?
+Terraform-এ **Module** হলো —  
+**একগুচ্ছ `.tf` ফাইল**, যেখানে **Resources, Variables, Outputs** একসাথে থাকে এবং যেটা আমরা বারবার ব্যবহার করতে পারি।
+
+**সহজ ভাষায় বললে:**  
+> **Module = ছোট ছোট Terraform প্রোজেক্ট** → অন্য প্রোজেক্টে Import করে ইউজ করা যায় ✅
+
+---
+
+### 🔵 Module কেন ব্যবহার করবো?
+| সুবিধা | ব্যাখ্যা |
+|:------|:---------|
+| 🔁 Reusability | বারবার লিখতে হবে না, একবার লিখে বারবার ব্যবহার |
+| 🧹 Organization | কোড ক্লিন এবং ম্যানেজ করা সহজ |
+| 🚀 Scalability | বড় ইনফ্রার জন্য অটোমেটেড স্কেল করা সহজ |
+| 🔒 Best Practices | সঠিক স্ট্যান্ডার্ডে Infrastructure লেখা যায় |
+
+---
+
+# ২. 🛠️ কিভাবে Reusable Module তৈরি করবেন?
+
+### 📂 ফাইল স্ট্রাকচার:
+
+```bash
+terraform-aws-project/
+├── main.tf
+├── variables.tf
+├── outputs.tf
+├── terraform.tfvars
+├── provider.tf
+└── modules/
+    └── ec2_instance/
+        ├── main.tf
+        ├── variables.tf
+        └── outputs.tf
+```
+
+---
+
+### 📦 Example Module: (modules/ec2_instance/main.tf)
+
+```hcl
+resource "aws_instance" "this" {
+  ami           = var.ami_id
+  instance_type = var.instance_type
+  subnet_id     = var.subnet_id
+  vpc_security_group_ids = var.security_group_ids
+  key_name      = var.key_name
+  tags = {
+    Name = var.instance_name
+  }
+}
+```
+
+**modules/ec2_instance/variables.tf**
+```hcl
+variable "ami_id" {}
+variable "instance_type" {}
+variable "subnet_id" {}
+variable "security_group_ids" { type = list(string) }
+variable "key_name" {}
+variable "instance_name" {}
+```
+
+**modules/ec2_instance/outputs.tf**
+```hcl
+output "instance_id" {
+  value = aws_instance.this.id
+}
+```
+
+---
+
+### 📦 Main Project থেকে Module Call করা (main.tf)
+
+```hcl
+module "web_server" {
+  source = "./modules/ec2_instance"
+
+  ami_id             = var.ami_id
+  instance_type      = var.instance_type
+  subnet_id          = aws_subnet.main_subnet.id
+  security_group_ids = [aws_security_group.instance_sg.id]
+  key_name           = aws_key_pair.deployer_key.key_name
+  instance_name      = "Web-Server"
+}
+```
+> 🎯 **ব্যাখ্যা:** এখন যখনই Module কল করবো, নতুন EC2 ইনস্ট্যান্স তৈরি হবে।
+
+---
+
+# ৩. 🔁 Terraform Looping (count, for_each)
+
+### 🧩 `count` ব্যবহার করে Multiple Resource তৈরি
+
+**main.tf**
+```hcl
+resource "aws_instance" "web" {
+  count         = 3
+  ami           = var.ami_id
+  instance_type = var.instance_type
+  subnet_id     = aws_subnet.main_subnet.id
+  vpc_security_group_ids = [aws_security_group.instance_sg.id]
+  key_name      = aws_key_pair.deployer_key.key_name
+
+  tags = {
+    Name = "Web-Server-${count.index}"
+  }
+}
+```
+> 📚 **count.index** => 0, 1, 2 হবে।
+
+---
+
+### 🧩 `for_each` ব্যবহার করে Map/Set থেকে Resource তৈরি
+
+**main.tf**
+```hcl
+variable "server_names" {
+  type    = set(string)
+  default = ["web-1", "web-2", "web-3"]
+}
+
+resource "aws_instance" "web" {
+  for_each      = var.server_names
+  ami           = var.ami_id
+  instance_type = var.instance_type
+  subnet_id     = aws_subnet.main_subnet.id
+  vpc_security_group_ids = [aws_security_group.instance_sg.id]
+  key_name      = aws_key_pair.deployer_key.key_name
+
+  tags = {
+    Name = each.value
+  }
+}
+```
+> 📚 **each.value** => "web-1", "web-2", "web-3" নামে ইনস্ট্যান্স তৈরি হবে।
+
+---
+
+# ৪. ❓ Terraform Conditional Logic (if, for, ternary)
+
+### 🧩 Ternary Operator `condition ? true_value : false_value`
+
+**main.tf**
+```hcl
+resource "aws_instance" "web" {
+  ami           = var.ami_id
+  instance_type = var.instance_type
+  subnet_id     = aws_subnet.main_subnet.id
+  vpc_security_group_ids = [aws_security_group.instance_sg.id]
+  key_name      = var.enable_key ? aws_key_pair.deployer_key.key_name : null
+
+  tags = {
+    Name = "Web-Instance"
+  }
+}
+```
+**variables.tf**
+```hcl
+variable "enable_key" {
+  type    = bool
+  default = true
+}
+```
+> 📚 যদি `enable_key = true` হয় তবে Key ইউজ হবে, না হলে হবে না।
+
+---
+
+### 🧩 for লুপ ভেতরেই Data ম্যানিপুলেট করা
+
+```hcl
+locals {
+  server_tags = [for s in var.server_names : upper(s)]
+}
+```
+> 📚 এখানে Server Names গুলো **Uppercase** করা হচ্ছে।
 
 ---
