@@ -1222,3 +1222,776 @@ locals {
 > 📚 এখানে Server Names গুলো **Uppercase** করা হচ্ছে।
 
 ---
+
+# 📦 Terraform পর্ব ৬: Terraform State & Backend
+
+---
+
+# ১. 🔵 Terraform State কী?
+
+> **Terraform State** হলো একটা ফাইল (default: `terraform.tfstate`) যেখানে তোমার তৈরি করা রিসোর্সগুলোর বর্তমান অবস্থা/ডাটা স্টোর হয়।
+
+**সহজ ভাষায়:**
+- যখন তুমি `terraform apply` দাও, তখন Terraform **কি কি রিসোর্স তৈরি করেছে**, **কোন ভ্যারিয়েবল ইউজ করেছে** — সবকিছু **tfstate** ফাইলে সেভ হয়।
+- Terraform পরে এই **state file** দেখে বুঝে **কি নতুন তৈরি করতে হবে**, **কি মুছতে হবে**, **কি আপডেট করতে হবে**।
+
+✅ **State ফাইল ছাড়া Terraform কাজ করতে পারে না।**
+
+---
+
+# ২. 🛠️ Local State vs Remote State
+
+| বিষয় | Local State | Remote State |
+|:-----|:------------|:-------------|
+| 📂 Location | তোমার নিজের মেশিনে | Remote Cloud Storage (S3, GCS, etc.) |
+| 👥 Collaboration | একা কাজের জন্য ভালো | টিমে একসাথে কাজের জন্য দরকার |
+| 🔐 Risk | হারিয়ে যেতে পারে, করাপ্ট হতে পারে | Safe, Backup-সহ |
+| 🔒 Locking | নেই | থাকে (DynamoDB Lock) |
+| 🔁 Versioning | নিজে করতে হয় | ক্লাউডে অটো versioning হয় |
+
+---
+
+# ৩. 🛠️ Backend with S3 + DynamoDB (Locking ও Versioning)
+
+### 🔵 Remote Backend কি?
+
+Remote Backend মানে —  
+> Terraform এর State File ম্যানেজ করা Cloud Storage এ। যেমন: **AWS S3**।
+
+**সাথে DynamoDB দিয়ে Lock করলে:**  
+- একাধিক ইউজার একসাথে একই স্টেট আপডেট করতে পারবে না।
+- Data corruption থেকে বাঁচা যাবে ✅
+
+---
+
+## 📋 Step-by-Step: S3 + DynamoDB Backend Setup
+
+### Step 1️⃣: S3 Bucket তৈরি করা (State রাখার জন্য)
+
+```hcl
+resource "aws_s3_bucket" "terraform_state" {
+  bucket = "my-terraform-state-bucket"
+
+  versioning {
+    enabled = true
+  }
+
+  server_side_encryption_configuration {
+    rule {
+      apply_server_side_encryption_by_default {
+        sse_algorithm = "AES256"
+      }
+    }
+  }
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+```
+
+**ব্যাখ্যা:**  
+- Versioning অন আছে (Backup থাকবে) ✅
+- Encryption অন আছে (Data secure থাকবে) 🔒
+- Destroy প্রিভেন্ট আছে (ভুলে মুছে যাবে না) 🚫
+
+---
+
+### Step 2️⃣: DynamoDB Table তৈরি করা (Locking এর জন্য)
+
+```hcl
+resource "aws_dynamodb_table" "terraform_locks" {
+  name         = "terraform-locks"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "LockID"
+
+  attribute {
+    name = "LockID"
+    type = "S"
+  }
+}
+```
+**ব্যাখ্যা:**  
+- Simple একটা টেবিল যেখানে Locking Data রাখবে।
+
+---
+
+### Step 3️⃣: Backend Configuration করা (main.tf এর শুরুতেই)
+
+```hcl
+terraform {
+  backend "s3" {
+    bucket         = "my-terraform-state-bucket"
+    key            = "global/s3/terraform.tfstate"
+    region         = "us-east-1"
+    dynamodb_table = "terraform-locks"
+    encrypt        = true
+  }
+}
+```
+✅ ব্যাস! এখন থেকে তোমার সমস্ত Terraform স্টেট ফাইল **S3** তে যাবে এবং **DynamoDB** দিয়ে Lock হবে!
+
+---
+
+# ৪. 📋 Terraform State Management Best Practices
+
+| টিপস | ব্যাখ্যা |
+|:-----|:---------|
+| 🛡️ Remote State Use করো | টিমে কাজ করলে সবসময় S3/GCS Remote Backend ইউজ করো |
+| 🔒 State Locking অন রাখো | DynamoDB/Table Lock ব্যবহার করো |
+| 🗂️ State File Access Control করো | S3 Bucket ও DynamoDB টেবিলের জন্য IAM Policy দাও |
+| 🕵️ State File এনক্রিপ্ট করো | S3 Server-Side Encryption Always অন রাখো |
+| 🛑 State File ম্যানুয়ালি এডিট করো না | ভুল করলে পুরো প্রোজেক্ট নষ্ট হতে পারে |
+| 🗃️ Terraform Workspaces ব্যবহার করো | Multiple Environments (dev, staging, prod) আলাদা করতে |
+| 📝 State File Versioning রাখো | যেকোনো সময় rollback করার সুবিধা হবে |
+
+---
+
+## 📦 Terraform Workspaces, CLI State Commands ও Recovery Tips
+
+---
+
+# ১. 🔵 Terraform Workspaces
+
+## Workspace কী?
+
+> Terraform Workspaces হলো একি কোডবেস ব্যবহার করে **multiple environments** (যেমন: dev, staging, prod) আলাদা আলাদা State File-এ ম্যানেজ করার সুবিধা।
+
+**সহজ ভাষায় বললে:**
+- একি কোড দিয়ে **dev environment** এ আলাদা EC2
+- **prod environment** এ আলাদা EC2
+- কিন্তু দুইটার আলাদা আলাদা `.tfstate` ফাইল থাকবে।
+
+---
+
+## 📋 কাজের Flow:
+
+| কমান্ড | কাজ |
+|:-------|:----|
+| `terraform workspace list` | Available সব Workspaces দেখাবে |
+| `terraform workspace new <name>` | নতুন Workspace তৈরি করবে |
+| `terraform workspace select <name>` | কোনো Workspace সিলেক্ট করবে |
+| `terraform workspace show` | এখন কোন Workspace active আছে দেখাবে |
+
+---
+
+## ✅ প্র্যাকটিক্যাল Example:
+
+### Step 1️⃣: নতুন Workspace তৈরি
+```bash
+terraform workspace new dev
+terraform workspace new prod
+```
+
+### Step 2️⃣: Check করো Available Workspaces
+```bash
+terraform workspace list
+```
+👉 Output হবে:
+```bash
+* default
+  dev
+  prod
+```
+
+### Step 3️⃣: কোনো একটা Workspace select করো
+```bash
+terraform workspace select dev
+```
+
+### Step 4️⃣: এখন `terraform apply` করলে **dev.tfstate** এ স্টেট সেভ হবে!
+
+---
+  
+## 📋 কোডে Workspace detect করে আলাদা Naming Convention:
+
+```hcl
+resource "aws_s3_bucket" "example" {
+  bucket = "my-bucket-${terraform.workspace}"
+}
+```
+
+> এতে করে dev/prod অনুযায়ী আলাদা আলাদা নাম তৈরি হবে!
+
+---
+
+# ২. 🛠️ Terraform CLI State Commands
+
+Terraform State নিয়ে আরো কিছু Important CLI Command আছে যেগুলো অবশ্যই জানা লাগবে:
+
+| কমান্ড | কাজ |
+|:-------|:----|
+| `terraform state list` | স্টেট ফাইলে কি কি রিসোর্স আছে তা দেখাবে |
+| `terraform state show <resource>` | নির্দিষ্ট রিসোর্সের বিস্তারিত দেখাবে |
+| `terraform state mv <source> <destination>` | স্টেটের মধ্যে রিসোর্স Move করবে |
+| `terraform state rm <resource>` | স্টেট থেকে রিসোর্স Remove করবে |
+
+---
+
+## ✅ উদাহরণ:
+
+### `terraform state list`
+```bash
+terraform state list
+```
+👉 Output:
+```
+aws_instance.example
+aws_s3_bucket.my_bucket
+```
+
+---
+
+### `terraform state show aws_instance.example`
+```bash
+terraform state show aws_instance.example
+```
+👉 Output:  
+ইনস্ট্যান্সের সকল প্রপার্টি ও আইডি দেখাবে।
+
+---
+
+### `terraform state rm aws_instance.example`
+```bash
+terraform state rm aws_instance.example
+```
+👉 এই কমান্ড দিলে **aws_instance.example** স্টেট ফাইল থেকে ডিলিট হবে (কিন্তু AWS থেকে রিসোর্স ডিলিট হবে না)। ⚠️
+
+---
+
+### `terraform state mv`
+```bash
+terraform state mv aws_instance.old aws_instance.new
+```
+👉 একটা রিসোর্স স্টেটের মধ্যে Move করা হয় নতুন নামের অধীনে।
+
+---
+
+# ৩. 🔄 Terraform State File Recovery / Backup Tips
+
+✅ **S3 Versioning Always Enable করো:**  
+- যদি কখনো স্টেট ফাইল করাপ্ট বা মুছে যায়, তখন পুরাতন ভার্সন থেকে Restore করতে পারবে।
+
+✅ **Manually Backup:**  
+- Terraform Apply করার আগে `terraform state pull > backup-$(date +%F).tfstate` দিয়ে ব্যাকআপ রাখতে পারো।
+
+✅ **Lock ব্যবহার করো (DynamoDB):**  
+- একাধিক ইউজার একসাথে স্টেট আপডেট করলে Conflict থেকে রক্ষা পাওয়া যাবে।
+
+✅ **Workspace আলাদা রাখো:**  
+- Dev, Stage, Prod environment আলাদা রাখলে স্টেট মিশে যাওয়ার ভয় কম থাকবে।
+
+✅ **State Encryption:**  
+- S3 encryption অন রাখো যেন স্টেটের মধ্যে থাকা sensitive information (password, key) সুরক্ষিত থাকে।
+
+✅ **Automation Backup:**  
+- চাইলে একটি ক্রনজব/পাইপলাইন সেট করতে পারো যা প্রতিদিন `state` ব্যাকআপ নেবে।
+
+---
+
+# 📢 একদম সংক্ষেপে আজকের টপিকস:
+
+| টপিক | সংক্ষিপ্ত সারাংশ |
+|:------|:---------------|
+| Terraform Workspace | একই কোড দিয়ে multiple environment আলাদা রাখা |
+| Terraform State Commands | স্টেট ম্যানিপুলেশন (list, show, mv, rm) |
+| State Backup & Recovery | সঠিক ভাবে স্টেট Protect ও Recover করা |
+
+---
+
+## 📦 পর্ব ৭: প্রোডাকশন লেভেল Terraform প্র্যাকটিস
+
+---
+
+## ১. 🔥 Environment based Deployment (dev, staging, prod)
+
+## ✅ ফোল্ডার স্ট্রাকচার:
+
+```bash
+terraform-project/
+│
+├── modules/
+│   └── ec2/
+│       ├── main.tf
+│       ├── variables.tf
+│       └── outputs.tf
+│
+├── envs/
+│   ├── dev/
+│   │   ├── main.tf
+│   │   ├── variables.tf
+│   │   ├── terraform.tfvars
+│   │   └── backend.tf
+│   │
+│   ├── staging/
+│   │   └── same structure...
+│   │
+│   └── prod/
+│       └── same structure...
+│
+└── README.md
+```
+
+---
+
+## ✅ উদাহরণ কোড:
+
+### `modules/ec2/main.tf`
+```hcl
+resource "aws_instance" "this" {
+  ami           = var.ami_id
+  instance_type = var.instance_type
+
+  tags = {
+    Name = "Instance-${terraform.workspace}"
+  }
+}
+```
+
+---
+
+### `modules/ec2/variables.tf`
+```hcl
+variable "ami_id" {}
+variable "instance_type" {}
+```
+
+---
+
+### `modules/ec2/outputs.tf`
+```hcl
+output "instance_id" {
+  value = aws_instance.this.id
+}
+```
+
+---
+
+### `envs/dev/main.tf`
+```hcl
+provider "aws" {
+  region = "us-east-1"
+}
+
+module "ec2_instance" {
+  source        = "../../modules/ec2"
+  ami_id        = var.ami_id
+  instance_type = var.instance_type
+}
+```
+
+---
+
+### `envs/dev/variables.tf`
+```hcl
+variable "ami_id" {}
+variable "instance_type" {}
+```
+
+---
+
+### `envs/dev/terraform.tfvars`
+```hcl
+ami_id         = "ami-0123456789abcdef0"
+instance_type  = "t2.micro"
+```
+
+---
+
+### `envs/dev/backend.tf`
+```hcl
+terraform {
+  backend "s3" {
+    bucket         = "my-terraform-state-bucket"
+    key            = "dev/terraform.tfstate"
+    region         = "us-east-1"
+    dynamodb_table = "terraform-lock"
+    encrypt        = true
+  }
+}
+```
+
+---
+
+## ✅ কাজের ধাপ:
+
+```bash
+cd envs/dev
+
+terraform init
+terraform workspace new dev
+terraform plan
+terraform apply
+```
+👉 Dev Environment এ Deploy হয়ে যাবে আলাদা State দিয়ে।
+
+---
+
+---
+
+# ২. 🧤 Workspaces ব্যবহার (dev, staging, prod)
+
+**Workspaces** দিয়ে environment গুলো আলাদা রাখবো।
+- Dev এর জন্য `workspace dev`
+- Staging এর জন্য `workspace staging`
+- Prod এর জন্য `workspace prod`
+
+> আগে যেমন দেখেছি, আলাদা স্টেট অটোমেটিক সেভ হবে ✅
+
+---
+
+---
+
+# ৩. 🔒 Sensitive Variable Handling
+
+Production এ **sensitive data** (password, secret key) সরাসরি `.tfvars` বা `.tf` ফাইলে রাখবো না!
+
+### ✅ Secure Variable Store:
+
+| Option | Best For | Tool |
+|:------|:---------|:-----|
+| Vault | বড় প্রজেক্ট | HashiCorp Vault |
+| AWS Secrets Manager | AWS ব্যবহারকারী | Terraform + Secrets Manager Integration |
+
+---
+
+## 🎯 HashiCorp Vault ইন্টিগ্রেশন (ছোট উদাহরণ):
+
+### Terraform Provider:
+```hcl
+provider "vault" {
+  address = "http://127.0.0.1:8200"
+}
+
+data "vault_generic_secret" "aws_creds" {
+  path = "aws/creds/terraform"
+}
+
+provider "aws" {
+  access_key = data.vault_generic_secret.aws_creds.data["access_key"]
+  secret_key = data.vault_generic_secret.aws_creds.data["secret_key"]
+}
+```
+
+---
+
+## 🎯 AWS Secrets Manager থেকে Secrets:
+
+```hcl
+data "aws_secretsmanager_secret_version" "example" {
+  secret_id = "my_secret"
+}
+
+locals {
+  secret_content = jsondecode(data.aws_secretsmanager_secret_version.example.secret_string)
+}
+```
+
+এভাবে password / API key সিকিউর রাখবো।
+
+---
+
+---
+
+# ৪. 🔄 CI/CD Integration (GitHub Actions / GitLab CI)
+
+Production এ **Terraform Manual apply করা হবে না।**
+👉 আমরা Automation করবো: Code push দিলেই Plan + Apply হবে।
+
+---
+
+## ✅ উদাহরণ: GitHub Actions দিয়ে
+
+### `.github/workflows/terraform.yml`
+```yaml
+name: Terraform CI/CD
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  terraform:
+    name: 'Terraform Plan and Apply'
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+
+    - name: Terraform Init
+      run: terraform init
+
+    - name: Terraform Plan
+      run: terraform plan
+
+    - name: Terraform Apply
+      if: github.ref == 'refs/heads/main'
+      run: terraform apply -auto-approve
+```
+
+---
+
+## ✅ উদাহরণ: GitLab CI দিয়ে
+
+### `.gitlab-ci.yml`
+```yaml
+stages:
+  - validate
+  - plan
+  - apply
+
+validate:
+  stage: validate
+  script:
+    - terraform init
+    - terraform validate
+
+plan:
+  stage: plan
+  script:
+    - terraform plan -out=tfplan
+
+apply:
+  stage: apply
+  script:
+    - terraform apply -auto-approve tfplan
+  when: manual
+```
+(Apply **Manual Approval** দিয়ে করানো উচিত production এর জন্য!)
+
+---
+
+## 📦 পর্ব ৮: রিয়েল ওয়ার্ল্ড প্রজেক্ট (Terraform)
+
+---
+
+## 🎯 প্রজেক্ট Goal:
+
+- ✅ VPC তৈরি (Default use)
+- ✅ Public Subnet তৈরি
+- ✅ EC2 Server তৈরি
+- ✅ RDS Database তৈরি (MySQL)
+- ✅ S3 Bucket তৈরি
+- ✅ মডিউল use
+- ✅ স্টেট S3 + DynamoDB তে রাখা
+- ✅ Errors ধরতে Debugging টিপস
+
+---
+
+## ✅ ১. ফোল্ডার স্ট্রাকচার:
+
+```bash
+terraform-project/
+│
+├── modules/
+│   ├── ec2/
+│   ├── rds/
+│   ├── s3/
+│
+├── envs/
+│   └── dev/
+│       ├── main.tf
+│       ├── variables.tf
+│       ├── outputs.tf
+│       ├── terraform.tfvars
+│       └── backend.tf
+│
+└── README.md
+```
+
+---
+
+## ✅ ২. Module Example (EC2, RDS, S3)
+
+---
+
+### `modules/ec2/main.tf`
+```hcl
+resource "aws_instance" "web" {
+  ami           = var.ami_id
+  instance_type = var.instance_type
+  subnet_id     = var.subnet_id
+
+  tags = {
+    Name = "EC2-${terraform.workspace}"
+  }
+}
+```
+
+---
+
+### `modules/ec2/variables.tf`
+```hcl
+variable "ami_id" {}
+variable "instance_type" {}
+variable "subnet_id" {}
+```
+
+---
+
+### `modules/ec2/outputs.tf`
+```hcl
+output "instance_public_ip" {
+  value = aws_instance.web.public_ip
+}
+```
+
+---
+
+### `modules/rds/main.tf`
+```hcl
+resource "aws_db_instance" "db" {
+  allocated_storage    = 20
+  engine               = "mysql"
+  engine_version       = "8.0"
+  instance_class       = "db.t3.micro"
+  username             = var.db_user
+  password             = var.db_password
+  db_name              = var.db_name
+  skip_final_snapshot  = true
+  publicly_accessible  = true
+}
+```
+
+---
+
+### `modules/rds/variables.tf`
+```hcl
+variable "db_user" {}
+variable "db_password" {}
+variable "db_name" {}
+```
+
+---
+
+### `modules/s3/main.tf`
+```hcl
+resource "aws_s3_bucket" "bucket" {
+  bucket = var.bucket_name
+  acl    = "private"
+}
+```
+
+---
+
+### `modules/s3/variables.tf`
+```hcl
+variable "bucket_name" {}
+```
+
+---
+
+## ✅ ৩. `envs/dev/main.tf`
+
+```hcl
+provider "aws" {
+  region = "us-east-1"
+}
+
+module "ec2" {
+  source        = "../../modules/ec2"
+  ami_id        = var.ami_id
+  instance_type = var.instance_type
+  subnet_id     = var.subnet_id
+}
+
+module "rds" {
+  source       = "../../modules/rds"
+  db_user      = var.db_user
+  db_password  = var.db_password
+  db_name      = var.db_name
+}
+
+module "s3" {
+  source       = "../../modules/s3"
+  bucket_name  = var.bucket_name
+}
+```
+
+---
+
+## ✅ ৪. `envs/dev/variables.tf`
+
+```hcl
+variable "ami_id" {}
+variable "instance_type" {}
+variable "subnet_id" {}
+variable "db_user" {}
+variable "db_password" {}
+variable "db_name" {}
+variable "bucket_name" {}
+```
+
+---
+
+## ✅ ৫. `envs/dev/terraform.tfvars`
+
+```hcl
+ami_id         = "ami-0c55b159cbfafe1f0"
+instance_type  = "t2.micro"
+subnet_id      = "subnet-xxxxxxxx"
+db_user        = "admin"
+db_password    = "Admin12345"
+db_name        = "mydb"
+bucket_name    = "my-terraform-bucket-123"
+```
+
+---
+
+## ✅ ৬. `envs/dev/backend.tf`
+
+```hcl
+terraform {
+  backend "s3" {
+    bucket         = "terraform-state-bucket"
+    key            = "dev/terraform.tfstate"
+    region         = "us-east-1"
+    dynamodb_table = "terraform-lock"
+    encrypt        = true
+  }
+}
+```
+
+---
+
+## ✅ ৭. কমান্ডস:
+
+```bash
+cd envs/dev
+
+terraform init
+terraform workspace new dev
+terraform plan
+terraform apply
+```
+
+✅ এখন EC2, RDS, S3 সব Create হয়ে যাবে।
+
+---
+
+# 🛠 Error Handling & Debugging Tips:
+
+### ১. Plan এ যদি Error আসে:
+- Check করো Variable মিসিং আছে কিনা
+- AMI ID বা Subnet ID ভুল হয়েছে কিনা
+- Provider Configure করা আছে কিনা
+
+### ২. Terraform Debug Mode চালু:
+
+```bash
+TF_LOG=DEBUG terraform apply
+```
+
+- এর ফলে Internal API Call Details ও Error Info দেখাবে
+
+### ৩. State Problem:
+- State File corrupt হলে:
+  - S3 থেকে backup version restore করা যায়
+  - বা `terraform state list`, `state show`, `state mv` দিয়ে ম্যানেজ করা যায়
+
+---
