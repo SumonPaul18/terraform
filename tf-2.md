@@ -357,7 +357,9 @@ provider "aws" {
   }
 ```
 ---
-**পদ্ধতি D: Shared Credentials File (credentials argument)**
+
+**পদ্ধতি E: Shared Credentials File (credentials argument)**
+
 আপনি একটি নির্দিষ্ট credentials ফাইল পাথ উল্লেখ করতে পারেন।
 
 ```
