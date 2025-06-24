@@ -210,8 +210,31 @@ terraform --version
 
 Terraform বিভিন্ন ক্লাউড প্রোভাইডারের সাথে কাজ করার জন্য সংশ্লিষ্ট ক্লাউডের API অ্যাক্সেস করার জন্য ক্রেডেনশিয়ালস (credentials) প্রয়োজন। এই ক্রেডেনশিয়ালস সেটআপ করার জন্য একাধিক নিরাপদ এবং কিছু কম নিরাপদ পদ্ধতি রয়েছে।
 
+1.  **IAM User তৈরি ও অ্যাক্সেস কী পান:**
+
+      * AWS কনসোলে গিয়ে একটি **IAM User** তৈরি করুন।
+      * এই User-কে আপনার Terraform কনফিগারেশন যে AWS রিসোর্সগুলো তৈরি বা ম্যানেজ করবে, সেগুলোর জন্য **প্রয়োজনীয় সর্বনিম্ন অনুমতি (Least Privilege)** দিন।
+      * User তৈরির সময় একটি `Access Key ID` এবং `Secret Access Key` পাবেন। **Secret Access Key শুধুমাত্র একবারই দেখা যাবে; এটি সুরক্ষিতভাবে সংরক্ষণ করুন।**
+
+2. **Credentials হার্ডকোডিং (NOT Recommended for Production)**
+
+এই পদ্ধতিটি শুধুমাত্র শেখার উদ্দেশ্যে বা অত্যন্ত ছোট, অ-সংবেদনশীল প্রজেক্টের জন্য ব্যবহার করা যেতে পারে। **প্রোডাকশন পরিবেশে বা পাবলিক রিপোজিটরিতে কখনোই ক্রেডেনশিয়াল হার্ডকোড করবেন না\!**
+
+Project Folder এ `provider.tf` একটি ফাইল তৈরি করুন। 
+```
+nano provider.tf
+```
+
+```
+provider "aws" {
+  region     = "us-east-1"
+  access_key = "YOUR_ACCESS_KEY_ID"
+  secret_key = "YOUR_SECRET_ACCESS_KEY"
+  }
+```
+
 <details>
-  <summary>বিভিন্ন ক্লাউড প্রোভাইডারের সাথে Terraform: ক্রেডেনশিয়াল সেটআপ গাইড</summary>
+  <summary> Credentials Setup Guides - **Details** </summary>
 
 ### `provider.tf` ফাইল কনফিগারেশন: আপনার ক্লাউড গেটওয়ে 
 
