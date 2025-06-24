@@ -1,6 +1,3 @@
-Certainly\! Here's a comprehensive `README.md` file for your GitHub repository on Terraform, covering all the points you mentioned.
-
-````markdown
 # Terraform: Infrastructure as Code (IaC) - Complete Guide
 
 ---
