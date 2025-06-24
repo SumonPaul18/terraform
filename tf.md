@@ -1059,14 +1059,3 @@ Terraform কনফিগারেশন টেস্ট করা খুবই 
 
 -----
 
-```
-
-To provide this as a downloadable file, I can't directly give you a download link here. However, you can easily create the `README.md` file yourself:
-
-1.  **Copy the entire content** from the markdown block above (starting from `# Terraform: Infrastructure as Code (IaC) - Complete Guide` and ending just before `---`).
-2.  **Open a plain text editor** (like Notepad on Windows, TextEdit on Mac, or VS Code/Sublime Text).
-3.  **Paste the copied content** into the editor.
-4.  **Save the file** as `README.md`. Make sure the file extension is `.md` and not `.txt`.
-
-Now you have your `README.md` file ready to be uploaded to your GitHub repository!
-```
