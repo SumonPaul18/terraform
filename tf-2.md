@@ -10,9 +10,9 @@
 
 ## 📖 **সূচিপত্র (Table of Contents)**
 
-1.  [**Introduction: Welcome to the World of Terraform\!**](https://www.google.com/search?q=%23introduction-welcome-to-the-world-of-terraform)
-      * [What is Terraform? At a Glance\!](https://www.google.com/search?q=%23what-is-terraform-at-a-glance)
-      * [Infrastructure as Code (IaC): Why is it the Future of Technology?](https://www.google.com/search?q=%23infrastructure-as-code-iac-why-is-it-the-future-of-technology)
+1.  [**Introduction: Welcome to the World of Terraform\!**](https://github.com/SumonPaul18/terraform/blob/main/tf-2.md#-%E0%A6%AD%E0%A7%82%E0%A6%AE%E0%A6%BF%E0%A6%95%E0%A6%BE-terraform-%E0%A6%8F%E0%A6%B0-%E0%A6%A6%E0%A7%81%E0%A6%A8%E0%A6%BF%E0%A6%AF%E0%A6%BC%E0%A6%BE%E0%A6%AF%E0%A6%BC-%E0%A6%B8%E0%A7%8D%E0%A6%AC%E0%A6%BE%E0%A6%97%E0%A6%A4%E0%A6%AE)
+      * [What is Terraform? At a Glance\!](https://github.com/SumonPaul18/terraform/blob/main/tf-2.md#terraform-%E0%A6%95%E0%A7%80-%E0%A6%8F%E0%A6%95-%E0%A6%A8%E0%A6%9C%E0%A6%B0%E0%A7%87)
+      * [Infrastructure as Code (IaC): Why is it the Future of Technology?](https://github.com/SumonPaul18/terraform/blob/main/tf-2.md#infrastructure-as-code-iac-%E0%A6%95%E0%A7%87%E0%A6%A8-%E0%A6%8F%E0%A6%9F%E0%A6%BF-%E0%A6%AD%E0%A6%AC%E0%A6%BF%E0%A6%B7%E0%A7%8D%E0%A6%AF%E0%A6%A4%E0%A7%87%E0%A6%B0-%E0%A6%AA%E0%A7%8D%E0%A6%B0%E0%A6%AF%E0%A7%81%E0%A6%95%E0%A7%8D%E0%A6%A4%E0%A6%BF)
 2.  [**Advantages & Disadvantages of Terraform: Is It Right For You?**](https://www.google.com/search?q=%23advantages--disadvantages-of-terraform-is-it-right-for-you)
       * [The Unique Advantages](https://www.google.com/search?q=%23the-unique-advantages)
       * [Be Aware of the Challenges](https://www.google.com/search?q=%23be-aware-of-the-challenges)
