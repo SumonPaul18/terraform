@@ -357,16 +357,18 @@ Terraform যদি একটি AWS EC2 ইনস্ট্যান্স, ECS 
 
 1.  **IAM User ও Key তৈরি:** পদ্ধতি A এর ধাপ 1 ও 2 অনুসরণ করুন।
 2.  **`provider.tf` ফাইলে সরাসরি ক্রেডেনশিয়ালস দিন:**
+
 ```
 nano provider.tf
 ```
-    ```
-    provider "aws" {
-      region     = "us-east-1"
-      access_key = "YOUR_ACCESS_KEY_ID"
-      secret_key = "YOUR_SECRET_ACCESS_KEY"
-    }
-    ```
+
+```
+provider "aws" {
+  region     = "us-east-1"
+  access_key = "YOUR_ACCESS_KEY_ID"
+  secret_key = "YOUR_SECRET_ACCESS_KEY"
+  }
+```
 
 -----
 
@@ -495,7 +497,9 @@ OpenStack এর সাথে সংযোগ স্থাপনের জন্
 
 **পদ্ধতি B: হার্ডকোডিং (NOT Recommended for Production)**
 
-শিখন বা টেস্টিং এর জন্য।
+```
+nano provider.tf
+```
 
 ```hcl
 provider "openstack" {
