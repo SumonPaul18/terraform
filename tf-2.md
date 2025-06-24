@@ -360,7 +360,7 @@ Terraform যদি একটি AWS EC2 ইনস্ট্যান্স, ECS 
 ```
 nano provider.tf
 ```
-    ```hcl
+    ```
     provider "aws" {
       region     = "us-east-1"
       access_key = "YOUR_ACCESS_KEY_ID"
