@@ -160,36 +160,19 @@ Linux সিস্টেমে Terraform ইন্সটল করা বেশ 
 
 **Ubuntu/Debian ভিত্তিক সিস্টেমে ইন্সটলেশন:**
 
-
-**HashiCorp GPG key যোগ করুন - এটি HashiCorp এর প্যাকেজগুলোর সত্যতা যাচাই করে।**
-```
-wget -O- [https://apt.releases.hashicorp.com/gpg](https://apt.releases.hashicorp.com/gpg) | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
-```
-**HashiCorp এর অফিসিয়াল APT repository আপনার সিস্টেমে যোগ করুন।**
-```
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] [https://apt.releases.hashicorp.com](https://apt.releases.hashicorp.com) $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
-```
-**প্যাকেজ লিস্ট আপডেট করুন যাতে নতুন repository থেকে প্যাকেজগুলো পাওয়া যায়।**
-```
-sudo apt update
-```
 **Terraform ইন্সটল করুন!**
 ```
-sudo apt install terraform
+wget -O - https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(grep -oP '(?<=UBUNTU_CODENAME=).*' /etc/os-release || lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+sudo apt update && sudo apt install terraform
 ```
 
 ### RHEL/CentOS ভিত্তিক সিস্টেমে ইন্সটলেশন:
 
-**yum-config-manager ইন্সটল করুন (যদি না থাকে, এটি repository ব্যবস্থাপনার জন্য দরকার)।**
-```
-sudo yum install -y yum-utils
-```
-**HashiCorp repository যোগ করুন আপনার সিস্টেমে।**
-```
-sudo yum-config-manager --add-repo [https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo](https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo)
-```
 **Terraform ইন্সটল করুন!**
 ```
+sudo yum install -y yum-utils
+sudo yum-config-manager --add-repo [https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo](https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo)
 sudo yum -y install terraform
 ```
 
