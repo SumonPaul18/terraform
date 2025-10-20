@@ -141,7 +141,7 @@ cd terraform-demo
 2. একটি `main.tf` ফাইল তৈরি করুন:
 
 ```bash
-touch main.tf
+nano main.tf
 ```
 
 3. `main.tf` ফাইলের মধ্যে কোড লিখুন:
