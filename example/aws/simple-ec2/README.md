@@ -47,7 +47,7 @@ examples/aws/simple-ec2/
 
 > ❌ **কখনোই** `provider.tf` এ `access_key` / `secret_key` হার্ডকোড করবেন না!
 
-### ✅ সুপারিশকৃত পদ্ধতি: `~/.aws/credentials` (AWS CLI কনফিগারেশন)
+### ✅ সুপারিশকৃত পদ্ধতি: `~/.aws/credentials` (AWS CLI কনফিগারেশন) অথবা (environment variable)
 
 1. **AWS CLI ইনস্টল করুন** (যদি না থাকে):
    ```bash
@@ -66,6 +66,15 @@ examples/aws/simple-ec2/
    - `Default output format`: `json`
 
 ✅ এই পদ্ধতিতে Terraform স্বয়ংক্রিয়ভাবে `~/.aws/credentials` থেকে ক্রেডেনশিয়াল নেবে।
+
+3. **অথবা environment variable ব্যবহার করুন:**
+
+```
+export AWS_ACCESS_KEY_ID="your-real-key-here"
+```
+```
+export AWS_SECRET_ACCESS_KEY="your-real-secret-here"
+```
 
 ---
 
