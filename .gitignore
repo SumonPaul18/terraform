@@ -1,0 +1,24 @@
+# Local Terraform files
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+*.tfvars.json
+.terraform.lock.hcl
+
+# OS & Editor files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/
+.idea/
+
+# Logs & temp
+*.log
+tmp/
+temp/
+
+# Sensitive
+secrets.tf
+override.tf
