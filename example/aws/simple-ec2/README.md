@@ -69,12 +69,13 @@ examples/aws/simple-ec2/
 
 3. **অথবা environment variable ব্যবহার করুন:**
 
-```
-export AWS_ACCESS_KEY_ID="your-real-key-here"
-```
-```
-export AWS_SECRET_ACCESS_KEY="your-real-secret-here"
-```
+   ```
+   export AWS_ACCESS_KEY_ID="your-real-key-here"
+   ```
+   ```
+   export AWS_SECRET_ACCESS_KEY="your-real-secret-here"
+   ```
+   > Note:   Replace Your AWS_ACCESS_KEY_ID & AWS_SECRET_ACCESS_KEY
 
 ---
 
