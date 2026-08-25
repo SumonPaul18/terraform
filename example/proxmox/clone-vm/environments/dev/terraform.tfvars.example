@@ -7,11 +7,12 @@ proxmox_api_token_secret = "Input your api secret"
 # VM Configuration Values
 # Here, change your desired configurations. 
 
-target_node  = "lab4"
-vm_id        = 463
-vm_name      = "tf-pve-vm"
-cpu_cores    = 2
-memory_mb    = 2048
-disk_size_gb = 20
-datastore_id = "main"
-bridge_name  = "vmbr0"
+# VM Password for Cloud-Init
+vm_password         = "StrongPass@123!"
+
+# Paths
+ssh_public_key_path = "~/.ssh/id_rsa.pub"
+
+# Overrides
+default_node        = "lab4"
+default_template_id = 315 

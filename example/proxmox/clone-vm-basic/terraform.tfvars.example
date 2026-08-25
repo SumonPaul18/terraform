@@ -7,11 +7,14 @@ proxmox_api_token_secret = "Input your api secret"
 # VM Configuration Values
 # Here, change your desired configurations. 
 
-target_node  = "lab4"
-vm_id        = 463
-vm_name      = "tf-pve-vm"
-cpu_cores    = 2
-memory_mb    = 2048
-disk_size_gb = 20
-datastore_id = "main"
-bridge_name  = "vmbr0"
+# VM Specific Values
+vm_name       = "clone-vm-tf"
+target_node   = "lab3"       # আপনার স্ক্রিনশট অনুযায়ী টেমপ্লেট lab3 নোডে আছে
+vm_id         = 463          # নতুন VM এর জন্য একটি ফ্রি ID দিন
+template_id   = 315          # Source Template ID
+
+# Resources
+cpu_cores     = 2
+memory_mb     = 2048
+datastore_id  = "main"       # টেমপ্লেট যে স্টোরেজে আছে (স্ক্রিনশট অনুযায়ী 'main')
+bridge_name   = "vmbr0"      # আপনার নেটওয়ার্ক ব্রিজ
