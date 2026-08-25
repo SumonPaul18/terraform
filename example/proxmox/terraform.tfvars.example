@@ -1,0 +1,17 @@
+# Connection Details
+
+proxmox_api_url          = "Input your api url"
+proxmox_api_token_id     = "Input your token id"
+proxmox_api_token_secret = "Input your api secret"
+
+# VM Configuration Values
+# Here, change your desired configurations. 
+
+target_node  = "lab4"
+vm_id        = 463
+vm_name      = "tf-pve-vm"
+cpu_cores    = 2
+memory_mb    = 2048
+disk_size_gb = 20
+datastore_id = "main"
+bridge_name  = "vmbr0"

@@ -1,0 +1,7 @@
+# View Resource Proxmo-VE Cluster Node List
+data "proxmox_virtual_environment_nodes" "available_nodes" {}
+
+output "proxmox_nodes_list" {
+  value       = data.proxmox_virtual_environment_nodes.available_nodes.names
+  description = "Connected Proxmox Cluster Nodes"
+}
