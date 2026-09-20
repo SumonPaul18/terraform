@@ -1,0 +1,18 @@
+# Connection Details
+
+proxmox_api_url          = "Input your api url"
+proxmox_api_token_id     = "Input your token id"
+proxmox_api_token_secret = "Input your api secret"
+
+# VM Configuration Values
+# Here, change your desired configurations. 
+
+# VM Password for Cloud-Init
+vm_password         = "StrongPass@123!"
+
+# Paths
+ssh_public_key_path = "~/.ssh/id_rsa.pub"
+
+# Overrides
+default_node        = "lab4"
+default_template_id = 315 
