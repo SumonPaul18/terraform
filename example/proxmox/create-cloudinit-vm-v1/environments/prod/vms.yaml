@@ -1,0 +1,21 @@
+vms:
+  - name: "web-01"
+    vm_id: 101
+    cores: 2
+    memory: 4096
+    disk_size: 150
+    ip: "192.168.68.101/24"
+    gateway: "192.168.68.1"
+    password: "ubuntu"
+    #prevent_destroy: false
+
+  - name: "web-02"
+    vm_id: 102
+    cores: 4
+    memory: 4096
+    disk_size: 100
+    ip: "192.168.68.102/24"
+    gateway: "192.168.68.1"
+    password: "ubuntu123"
+    #prevent_destroy: true
+
