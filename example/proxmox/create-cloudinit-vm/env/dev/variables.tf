@@ -45,3 +45,9 @@ variable "vm_password" {
   default     = "TempPass@123!" # ডিফল্ট পাসওয়ার্ড, tfvars-এ চেঞ্জ করতে পারবেন
   description = "Default password for VM users"
 }
+
+variable "vm_user" {
+  type        = string
+  default     = "ubuntu"
+  description = "Default OS username for Cloud-Init"
+}

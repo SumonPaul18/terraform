@@ -30,7 +30,7 @@ module "cloudinit_vm_01" {
   ]
 
   # Cloud-Init Specifics
-  ci_username      = "ubuntu"
+  ci_username      = var.vm_user # Defined in tfvars
   ci_password      = var.vm_password # Defined in tfvars
   ssh_public_key   = trimspace(file(var.ssh_public_key_path))
   ci_ipv4_address  = "192.168.68.242/24"
