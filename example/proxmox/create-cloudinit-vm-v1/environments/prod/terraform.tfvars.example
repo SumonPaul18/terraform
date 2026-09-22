@@ -1,0 +1,13 @@
+# Connection Details
+
+proxmox_api_url          = "Input your api url"
+proxmox_api_token_id     = "Input your token id"
+proxmox_api_token_secret = "Input your api secret"
+
+# VM Configuration Values
+# Here, change your desired configurations. 
+
+default_node        = "lab4"       # সব VM lab4 নোডে তৈরি হবে
+template_id         = 410          # আপনার তৈরি করা টেমপ্লেট ID (VM 410)
+ssh_key_path        = "~/.ssh/id_ed25519.pub" # আপনার ssh public key 
+default_password    = "ubuntu123" # যদি YAML-এ পাসওয়ার্ড না থাকে
